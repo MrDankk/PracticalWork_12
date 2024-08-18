@@ -13,15 +13,13 @@ namespace Task_1
         public string FirstName { get; set; }
         public string MiddleName { get; set; }
         public string Name { get; set; }
-        public int AccountNumber { get; set; }
 
-        public Customers(int id,string lastName,string firstName,string middleName, int accountNumber) 
+        public Customers(int id,string lastName,string firstName,string middleName) 
         { 
             this.ID = id;
             this.LastName = lastName;
             this.FirstName = firstName;
             this.MiddleName = middleName;
-            this.AccountNumber = accountNumber;
             this.Name = lastName + " " + firstName + " " + middleName;
         }
 
@@ -32,7 +30,6 @@ namespace Task_1
             this.FirstName = customer.FirstName;
             this.MiddleName = customer.MiddleName;
             this.Name = customer.Name;
-            this.AccountNumber = customer.AccountNumber;
         }
     }
 }

@@ -2,13 +2,14 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 
 namespace Task_1
 {
-    internal class Bank
+    internal class Bank : ISending<CustomersAccount>, IReceiving<CustomersAccount>
     {
         private Repository repository;
 
@@ -18,8 +19,7 @@ namespace Task_1
         public Bank(Repository repository)
         {
             this.repository = repository;
-
-            accounts = repository.GetAccountArray();
+            RefreshAccountsArray();
 
             CustomersList = new ObservableCollection<Customers>();
 
@@ -28,38 +28,6 @@ namespace Task_1
             for (int i = 0; i < customers.Length; i++)
             {
                 CustomersList.Add(customers[i]);
-            }
-        }
-
-        /// <summary>
-        /// Перевод между счетами
-        /// </summary>
-        /// <param name="sender"> Номер счёта отправителя </param>
-        /// <param name="recipient"> Номер счёта  получателя </param>
-        /// <param name="sum"> Сумма </param>
-        public void Transfer(int sender, int recipient, long sum)
-        {
-            CustomersAccount senderAccount = FindAccountByAccountNumber(sender);
-            CustomersAccount recipientAccount = FindAccountByAccountNumber(recipient);
-
-            Customers senderCustomer = FindCustomerByAccountNumber(sender);
-            Customers recipientCustomer = FindCustomerByAccountNumber(recipient);
-
-            if(recipientAccount != null && recipientCustomer != null)
-            {
-                if (BalanceChecking(senderAccount, sum))
-                {
-                    Send(senderCustomer, senderAccount, sum);
-                    Receive(recipientCustomer, recipientAccount, sum);
-                }
-                else
-                {
-                    MessageBox.Show("Не хватает баланса");
-                }
-            }
-            else
-            {
-                MessageBox.Show("Такой счёт не зарегистрирован");
             }
         }
 
@@ -102,11 +70,43 @@ namespace Task_1
             }
             else
             {
-                float percentages = (float)(year * 1.12);
+                float percentages = (float)(year * 0.12);
                 year += (long)percentages;
             }
 
             return year;
+        }
+
+        public void RefreshAccountsArray()
+        {
+            accounts = repository.GetAccountArray();
+        }
+
+        public bool Send(CustomersAccount senderAccount,long sum)
+        {
+            long newBalance;
+
+            if (BalanceChecking(senderAccount, sum))
+            {
+                newBalance = senderAccount.AccountBalance -= sum;
+
+                senderAccount.AccountBalance = newBalance;
+                repository.SetAccountBalance(senderAccount, newBalance);
+                return true;
+            }
+            else
+            {
+                MessageBox.Show("Не хватает баланса");
+                return false;
+            }
+        }
+
+        public void Receive(CustomersAccount recipientAccount, long sum)
+        {
+            long newBalance = recipientAccount.AccountBalance += sum;
+
+            recipientAccount.AccountBalance = newBalance;
+            repository.SetAccountBalance(recipientAccount, newBalance);
         }
 
         /// <summary>
@@ -122,37 +122,9 @@ namespace Task_1
                 return true;
             }
             else
-            { 
-                return false; 
+            {
+                return false;
             }
-        }
-
-        /// <summary>
-        /// Снятие денег со счёта
-        /// </summary>
-        /// <param name="sender"> Отправитель </param>
-        /// <param name="senderAccount"> Счёт отправителя </param>
-        /// <param name="sum"> Сумма </param>
-        private void Send(Customers sender, CustomersAccount senderAccount, long sum)
-        {
-            long newBalance = senderAccount.AccountBalance -= sum;
-
-            senderAccount.AccountBalance = newBalance;
-            repository.SetAccountBalance(sender,newBalance);
-        }
-
-        /// <summary>
-        /// Зачисление денег на счёт
-        /// </summary>
-        /// <param name="recipient"> Получатель </param>
-        /// <param name="recipientAccount"> Счёт получателя </param>
-        /// <param name="sum"> Сумма </param>
-        private void Receive(Customers recipient, CustomersAccount recipientAccount, long sum)
-        {
-            long newBalance = recipientAccount.AccountBalance += sum;
-
-            recipientAccount.AccountBalance = newBalance;
-            repository.SetAccountBalance(recipient,newBalance);
         }
 
         /// <summary>
@@ -160,11 +132,11 @@ namespace Task_1
         /// </summary>
         /// <param name="_accountNumber"> Номер счёта </param>
         /// <returns></returns>
-        public Customers FindCustomerByAccountNumber(int _accountNumber)
+        public Customers FindCustomerByID(int _id)
         {
             for (int i = 0; i < CustomersList.Count; i++)
             {
-                if (CustomersList[i].AccountNumber == _accountNumber)
+                if (CustomersList[i].ID == _id)
                 {
                     return CustomersList[i];
                 }
@@ -178,17 +150,44 @@ namespace Task_1
         /// </summary>
         /// <param name="_accountNumber"> Номер счёта </param>
         /// <returns></returns>
-        public CustomersAccount FindAccountByAccountNumber(int _accountNumber)
+        public CustomersAccount FindAccountByID(int _id, bool accountType)
         {
             for (int i = 0; i < accounts.Length; i++)
             {
-                if (accounts[i].AccountNumber == _accountNumber)
+                if (accounts[i].ID == _id && accounts[i].AccountType == accountType)
                 {
                     return accounts[i];
                 }
             }
 
             return null;
+        }
+
+        public CustomersAccount FindAccountByNumber(int accountNumber)
+        {
+            for (int i = 0; i < accounts.Length; i++)
+            {
+                if (accounts[i].AccountNumber == accountNumber)
+                {
+                    return accounts[i];
+                }
+            }
+
+            return null;
+        }
+
+        public int FindIDByAccountNumber(int _accountNumber)
+        {
+            int id = -1;
+
+            for (int i = 0; i < accounts.Length; i++)
+            {
+                if (accounts[i].AccountNumber == _accountNumber)
+                {
+                    id = accounts[i].ID;
+                }
+            }
+            return id;
         }
     }
 }

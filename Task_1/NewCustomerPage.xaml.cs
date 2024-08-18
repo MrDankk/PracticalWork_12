@@ -22,8 +22,6 @@ namespace Task_1
     {
         MainWindow mainWindow;
 
-        Random random;
-
         bool _accountTupe;
         long deposit;
 
@@ -31,7 +29,6 @@ namespace Task_1
         {
             InitializeComponent();
             this.mainWindow = mainWindow;
-            random = new Random();
         }
 
         private void ReturnMainPage(object sender, RoutedEventArgs e)
@@ -44,24 +41,13 @@ namespace Task_1
         {
             if(CheckEmptyInput())
             {
-                string[] customer = new string[] {"0", LastName.Text, FirstName.Text, MiddleName.Text, CreateAccountNumber().ToString()};
-                mainWindow.AddNewCustomer(customer, Deposit.Text, _accountTupe);
+                string[] customer = new string[] {"0", LastName.Text, FirstName.Text, MiddleName.Text};
+
+                long deposit = long.Parse(Deposit.Text);
+                mainWindow.AddNewCustomer(customer, mainWindow.CreateAccountNumber(), deposit, _accountTupe);
 
                 Reset();
                 mainWindow.MainPage();
-            }
-        }
-
-        private int CreateAccountNumber()
-        {
-            while(true)
-            {
-                int accountNumber = random.Next(100000, 1000000);
-
-                if (mainWindow.UniqueAccountNumber(accountNumber))
-                {
-                    return accountNumber;
-                }
             }
         }
 

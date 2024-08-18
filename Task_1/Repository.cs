@@ -15,11 +15,15 @@ namespace Task_1
         private string accountPath;
 
         public string CustomersPath { get { return customersPath; } }
+        public string AccountPath { get { return accountPath; } }
 
         public Repository()
         {
             customersPath = "Customers.txt";
             accountPath = "Accounts\\";
+
+            FileChecking(customersPath);
+            FolderChecking(accountPath);
         }
 
         public Customers[] GetCustomersArray()
@@ -31,7 +35,7 @@ namespace Task_1
             {
                 string[] customersString = customersFile[i].Split('#');
 
-                customers[i] = new Customers(int.Parse(customersString[0]), customersString[1], customersString[2], customersString[3], int.Parse(customersString[4]));
+                customers[i] = new Customers(int.Parse(customersString[0]), customersString[1], customersString[2], customersString[3]);
             }
 
             return customers;
@@ -39,78 +43,71 @@ namespace Task_1
 
         public CustomersAccount[] GetAccountArray()
         {
-            Customers[] customers = GetCustomersArray();
-            CustomersAccount[] accounts = new CustomersAccount[customers.Length];
+            string[] files = Directory.GetFiles(accountPath);
+            CustomersAccount[] accounts = new CustomersAccount[files.Length];
 
-            for (int i = 0; i < accounts.Length; i++)
+            for (int i = 0; i < files.Length; i++)
             {
-                accounts[i] = new CustomersAccount(customers[i], this);
+                List<string> strings =FileReader(files[i]);
+                string[] fileSplit = strings[0].Split('#');
+
+                bool accountType;
+
+                if (fileSplit[3] == "0")
+                {
+                    accountType = false;
+                }
+                else
+                {
+                    accountType = true;
+                }
+
+                accounts[i] = new CustomersAccount(int.Parse(fileSplit[0]), int.Parse(fileSplit[1]), long.Parse(fileSplit[2]), accountType);
+
             }
 
             return accounts;
         }
 
-        public long GetAccountBalance(Customers customer)
+        public long GetAccountBalance(CustomersAccount customerAccount)
         {
-            string path = accountPath + customer.AccountNumber.ToString() + ".txt";
+            string path = accountPath + customerAccount.AccountNumber.ToString() + ".txt";
             List<string> file = FileReader(path);
             string[] fileArray = file[0].Split('#');
 
-            long accountBalance = long.Parse(fileArray[0]);
+            long accountBalance = long.Parse(fileArray[2]);
             return accountBalance;
         }
 
-        public void SetAccountBalance(Customers customer, long balance)
+        public void SetAccountBalance(CustomersAccount customerAccount, long balance)
         {
-            string path = accountPath + customer.AccountNumber.ToString() + ".txt";
-            string newBalance = string.Empty;
-            bool accountType = GetAccountType(customer);
+            string path = accountPath + customerAccount.AccountNumber.ToString() + ".txt";
 
-            if(accountType)
-            {
-                newBalance = balance.ToString() + "#" + "1";
-            }
-            else
-            {
-                newBalance = balance.ToString() + "#" + "0";
-            }
+            string newAccountText = customerAccount.ID.ToString() + "#" +
+                                customerAccount.AccountNumber.ToString() + "#" +
+                                balance.ToString() + "#" +
+                                StringAccountType(customerAccount);
+
 
             if (File.Exists(path))
             {
                 File.Delete(path);
             }
 
-            FileWriting(path, balance.ToString());
+            FileWriting(path, newAccountText);
         }
 
-        public bool GetAccountType(Customers customer)
+        public void WriteCustomersAccount(CustomersAccount customerAccount)
         {
-            string path = accountPath + customer.AccountNumber.ToString() + ".txt";
-            List<string> file = FileReader(path);
-            string[] fileArray = file[0].Split('#');
+            string path = accountPath + customerAccount.AccountNumber.ToString() + ".txt";
 
-            bool accountType = true;
+            string accountType = StringAccountType(customerAccount);
 
-            if (fileArray[1] == "0")
-            {
-                accountType = false;
-            }
+            string newAccount = customerAccount.ID.ToString() + "#" +
+                                customerAccount.AccountNumber.ToString() + "#" +
+                                customerAccount.AccountBalance.ToString() + "#" +
+                                accountType;
 
-            return accountType;
-        }
-        public void WriteCustomersAccount(Customers customer, bool accountType, long balance)
-        {
-            string path = accountPath + customer.AccountNumber.ToString() + ".txt";
-            string newAccount = string.Empty;
-
-            if (accountType)
-            {
-                newAccount = balance.ToString() + "#" + "1";
-            }
-            else
-            {
-                newAccount = balance.ToString() + "#" + "0";
-            }
 
             if (File.Exists(path))
             {
@@ -118,6 +115,22 @@ namespace Task_1
             }
 
             FileWriting(path, newAccount);
+        }
+
+        private string StringAccountType(CustomersAccount customerAccount)
+        {
+            string accountType;
+
+            if (customerAccount.AccountType)
+            {
+                accountType = "1";
+            }
+            else
+            {
+                accountType = "0";
+            }
+
+            return accountType;
         }
 
         #region Проверка,чтение и запись файлов
@@ -175,6 +188,19 @@ namespace Task_1
                 FileStream fileStream = new FileStream(filePath, FileMode.Create);
                 fileStream.Close();
             }
+        }
+
+        private void FolderChecking(string folderPath)
+        {
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+            }
+        }
+
+        public void DeleteFile(string filePath)
+        {
+            File.Delete(filePath);
         }
 
         #endregion

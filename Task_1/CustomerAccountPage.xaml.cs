@@ -21,17 +21,35 @@ namespace Task_1
     public partial class CustomerAccountPage : Page
     {
         MainWindow mainWindow;
-        TransferPage transferPage;
+
+        public AccountPage depositAccountPage;
+        public AccountPage notDepositAccountPage;
+
+        public NewAccountPage newDepositAccountPage;
+        public NewAccountPage newNotDepositAccountPage;
+
+        public TransferPage depositTransferPage;
+        public TransferPage notDepositTransferPage;
+
         public CustomerAccountPage(MainWindow mainWindow)
         {
-            InitializeComponent();
+            InitializeComponent(); 
             this.mainWindow = mainWindow;
-            transferPage = new TransferPage(mainWindow);
-        }
 
-        private void TransferPage(object sender, RoutedEventArgs e)
-        {
-            this.CustomerFrame.Content = transferPage;
+            depositAccountPage = new AccountPage(this);
+            notDepositAccountPage = new AccountPage(this);
+
+            newDepositAccountPage = new NewAccountPage(mainWindow);
+            newNotDepositAccountPage = new NewAccountPage(mainWindow);
+
+            depositTransferPage = new TransferPage(mainWindow);
+            notDepositTransferPage = new TransferPage(mainWindow);
+
+            newDepositAccountPage.AccountType.Text = "Депозитный счёт";
+            depositAccountPage.AccountType.Text = "Депозитный счёт";
+
+            newNotDepositAccountPage.AccountType.Text = "Недепозитный счёт";
+            notDepositAccountPage.AccountType.Text = "Недепозитный счёт";
         }
 
         private void MainMenuPage(object sender, RoutedEventArgs e)

@@ -22,6 +22,8 @@ namespace Task_1
     {
         MainWindow mainWindow;
 
+        public int senderNumber;
+
         public TransferPage(MainWindow mainWindow)
         {
             InitializeComponent();
@@ -30,14 +32,13 @@ namespace Task_1
 
         private void AccountInfoPage(object sender, RoutedEventArgs e)
         {
-            mainWindow.customerAccountPage.CustomerFrame.Content = mainWindow.accountInfo;
+            mainWindow.MainFrame.Content = mainWindow.customerAccountPage;
         }
 
         private void OpenTransfer(object sender, RoutedEventArgs e)
         {
             if(CheckInput())
             {
-                int senderNumber = int.Parse(mainWindow.accountInfo.AccountNumber.Text);
                 int recipientNumber = int.Parse(AccountNumber.Text);
                 long sum = long.Parse(Sum.Text);
 

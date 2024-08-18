@@ -55,8 +55,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="AccountInfo.xaml.cs">
-      <DependentUpon>AccountInfo.xaml</DependentUpon>
+    <Compile Include="AccountPage.xaml.cs">
+      <DependentUpon>AccountPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Bank.cs" />
     <Compile Include="CustomerAccountPage.xaml.cs">
@@ -64,11 +64,16 @@
     </Compile>
     <Compile Include="Customers.cs" />
     <Compile Include="CustomersAccount.cs" />
+    <Compile Include="IReceiving.cs" />
+    <Compile Include="ISending.cs" />
+    <Compile Include="NewAccountPage.xaml.cs">
+      <DependentUpon>NewAccountPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Repository.cs" />
     <Compile Include="TransferPage.xaml.cs">
       <DependentUpon>TransferPage.xaml</DependentUpon>
     </Compile>
-    <Page Include="AccountInfo.xaml">
+    <Page Include="AccountPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -95,6 +100,10 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="NewAccountPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="NewCustomerPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

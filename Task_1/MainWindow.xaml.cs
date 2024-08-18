@@ -25,7 +25,8 @@ namespace Task_1
         MainPage mainPage;
         NewCustomerPage newCustomerPage;
         public CustomerAccountPage customerAccountPage;
-        public AccountInfo accountInfo;
+
+        Random rand;
 
         Repository repository;
         Bank bank;
@@ -34,10 +35,11 @@ namespace Task_1
         {
             InitializeComponent();
 
+            rand = new Random();
+
             mainPage = new MainPage(this);
             newCustomerPage = new NewCustomerPage(this);
             customerAccountPage = new CustomerAccountPage(this);
-            accountInfo = new AccountInfo(this);
 
             repository = new Repository();
             bank = new Bank(repository);
@@ -60,66 +62,118 @@ namespace Task_1
         public void CustomerAccountPage()
         {
             Customers customer = mainPage.CustomersView.SelectedItem as Customers;
-            CustomersAccount customerAccount = new CustomersAccount(customer, repository);
 
             MainFrame.Content = customerAccountPage;
-            customerAccountPage.CustomerFrame.Content = accountInfo;
+            customerAccountPage.CustomerName.Text = customer.Name;
 
-            accountInfo.CustomerName.Text = customer.Name;
-            accountInfo.AccountNumber.Text = customer.AccountNumber.ToString();
-            accountInfo.AccountBalance.Text = customerAccount.AccountBalance.ToString();
-            accountInfo.AccountTupe.Text = CustomerAccountType(customerAccount);
-            accountInfo.NextMonth.Text = bank.MonthlyInterest(customerAccount.AccountType, customerAccount.AccountBalance).ToString();
-            accountInfo.NextYear.Text = bank.YearIntetest(customerAccount.AccountType, customerAccount.AccountBalance).ToString();
+            CheckDepositAccount(customer);
+            CheckNotDepositAccount(customer);
         }
 
         public void CheckTransfer(int sender,int recipient, long sum)
         {
-            bank.Transfer(sender, recipient, sum);
+            CustomersAccount senderAccount = bank.FindAccountByNumber(sender);
+            CustomersAccount recipientAccount = bank.FindAccountByNumber(recipient);
+
+            Customers senderCustomer = bank.FindCustomerByID(senderAccount.ID);
+            Customers recipientCustomer = bank.FindCustomerByID(recipientAccount.ID);
+
+            if(senderCustomer != null && recipientCustomer != null)
+            {
+                if(bank.Send(senderAccount, sum))
+                {
+                    bank.Receive(recipientAccount, sum);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Такой счёт не зарегистрирован");
+            }
+
             MainPage();
         }
 
-        public void AddNewCustomer(string[] customer, string inputBalance,bool accountType)
+        public void AddNewCustomer(string[] customer,int accountNumber, long inputBalance,bool accountType)
         {
-            Customers newCustomer = new Customers(NewCustomerId(), customer[1], customer[2], customer[3], int.Parse(customer[4]));
+            Customers newCustomer = new Customers(NewCustomerId(), customer[1], customer[2], customer[3]);
+            CustomersAccount newAccount = new CustomersAccount(newCustomer, accountNumber, inputBalance,accountType);
+
             customer[0] = newCustomer.ID.ToString();
             string line = string.Join("#", customer);
 
-            long balance = long.Parse(inputBalance);
-            repository.WriteCustomersAccount(newCustomer, accountType, balance);
-
-            bank.CustomersList.Add(newCustomer);
+            repository.WriteCustomersAccount(newAccount);
             repository.FileWriting(repository.CustomersPath, line);
+
+            bank.RefreshAccountsArray();
+            bank.CustomersList.Add(newCustomer);
+        }
+
+        public void AddNewAccount(int id, long balance, bool accountType)
+        {
+            Customers customer = bank.FindCustomerByID(id);
+            CustomersAccount newAccount = new CustomersAccount(customer, CreateAccountNumber(),balance,accountType);
+
+            repository.WriteCustomersAccount(newAccount);
+            bank.RefreshAccountsArray();
+        }
+
+        public int CreateAccountNumber()
+        {
+            while (true)
+            {
+                int accountNumber = rand.Next(100000, 1000000);
+
+                if (UniqueAccountNumber(accountNumber))
+                {
+                    return accountNumber;
+                }
+            }
         }
 
         public void DeleteCustomer()
         {
             Customers customer = mainPage.CustomersView.SelectedItem as Customers;
-            CustomersAccount customerAccount = bank.FindAccountByAccountNumber(customer.AccountNumber);
+            CustomersAccount customerDepositAccount = bank.FindAccountByID(customer.ID, true);
+            CustomersAccount customerNotDepositAccount = bank.FindAccountByID(customer.ID, false);
 
             bank.CustomersList.Remove(customer);
 
-            File.Delete(repository.CustomersPath);
+            DeleteAccount(customerDepositAccount);
+            DeleteAccount(customerNotDepositAccount);
+
+            repository.DeleteFile(repository.CustomersPath);
+
             for (int i = 0; i < bank.CustomersList.Count; i++)
             {
+                CustomersAccount depositAccount = bank.FindAccountByID(bank.CustomersList[i].ID, true);
+                CustomersAccount notDepositAccount = bank.FindAccountByID(bank.CustomersList[i].ID, false);
+
                 bank.CustomersList[i].ID = i;
 
                 string line = string.Join("#", bank.CustomersList[i].ID, 
                                                bank.CustomersList[i].LastName, 
                                                bank.CustomersList[i].FirstName, 
-                                               bank.CustomersList[i].MiddleName, 
-                                               bank.CustomersList[i].AccountNumber);
+                                               bank.CustomersList[i].MiddleName);
                 repository.FileWriting(repository.CustomersPath, line);
             }
 
             mainPage.CustomersView.Items.Refresh();
 
-            bank.accounts = new CustomersAccount[bank.accounts.Length - 1];
+            bank.accounts = repository.GetAccountArray();
+
             for (int i = 0;i < bank.accounts.Length; i++)
             {
-                bank.accounts[i] = new CustomersAccount(bank.CustomersList[i], repository);
+                repository.WriteCustomersAccount(bank.accounts[i]);
+            }
+        }
 
-                repository.WriteCustomersAccount(bank.CustomersList[i],bank.accounts[i].AccountType, bank.accounts[i].AccountBalance);
+        private void DeleteAccount(CustomersAccount customersAccount)
+        {
+            if(customersAccount == null) return;
+            else
+            {
+                string AccountPath = repository.AccountPath + customersAccount.AccountNumber.ToString() + ".txt";
+                repository.DeleteFile(AccountPath);
             }
         }
 
@@ -132,7 +186,7 @@ namespace Task_1
         {
             for (int i = 0; i < bank.CustomersList.Count;i++)
             {
-                if(accountNumber == bank.CustomersList[i].AccountNumber)
+                if(accountNumber == bank.accounts[i].AccountNumber)
                 {
                     return false;
                 }
@@ -146,20 +200,55 @@ namespace Task_1
             return bank.CustomersList.Count;
         }
 
-        private string CustomerAccountType(CustomersAccount customerAccount)
+        private void CheckDepositAccount(Customers customer)
         {
-            string account = string.Empty;
+            CustomersAccount DepositAccount = bank.FindAccountByID(customer.ID, true);
 
-            if (customerAccount.AccountType)
+            if(DepositAccount != null)
             {
-                account = "Депозитный счёт";
+                customerAccountPage.DepositFrame.Content = customerAccountPage.depositAccountPage;
+
+                customerAccountPage.depositAccountPage.AccountNumber.Text = DepositAccount.AccountNumber.ToString();
+                customerAccountPage.depositAccountPage.AccountBalance.Text = DepositAccount.AccountBalance.ToString();
+
+                customerAccountPage.depositAccountPage.NextMonth.Text = bank.MonthlyInterest(DepositAccount.AccountType,DepositAccount.AccountBalance).ToString();
+                customerAccountPage.depositAccountPage.NextYear.Text = bank.YearIntetest(DepositAccount.AccountType, DepositAccount.AccountBalance).ToString();
+
+                customerAccountPage.depositAccountPage._semderNumber = DepositAccount.AccountNumber;
+                customerAccountPage.depositAccountPage._accountType = DepositAccount.AccountType;
             }
             else
             {
-                account = "Недепозитный счёт";
+                customerAccountPage.DepositFrame.Content = customerAccountPage.newDepositAccountPage;
+                customerAccountPage.newDepositAccountPage._accountType = true;
+                customerAccountPage.newDepositAccountPage._customerId = customer.ID;
             }
+            
+        }
 
-            return account;
+        private void CheckNotDepositAccount(Customers customer)
+        {
+            CustomersAccount NotDepositAccount = bank.FindAccountByID(customer.ID,false);
+
+            if (NotDepositAccount != null)
+            {
+                customerAccountPage.NotDepositFrame.Content = customerAccountPage.notDepositAccountPage;
+
+                customerAccountPage.notDepositAccountPage.AccountNumber.Text = NotDepositAccount.AccountNumber.ToString();
+                customerAccountPage.notDepositAccountPage.AccountBalance.Text = NotDepositAccount.AccountBalance.ToString();
+
+                customerAccountPage.notDepositAccountPage.NextMonth.Text = bank.MonthlyInterest(NotDepositAccount.AccountType,NotDepositAccount.AccountBalance).ToString();
+                customerAccountPage.notDepositAccountPage.NextYear.Text = bank.YearIntetest(NotDepositAccount.AccountType, NotDepositAccount.AccountBalance).ToString();
+
+                customerAccountPage.notDepositAccountPage._semderNumber = NotDepositAccount.AccountNumber;
+                customerAccountPage.notDepositAccountPage._accountType = NotDepositAccount.AccountType;
+            }
+            else
+            {
+                customerAccountPage.NotDepositFrame.Content = customerAccountPage.newNotDepositAccountPage;
+                customerAccountPage.newNotDepositAccountPage._accountType = false;
+                customerAccountPage.newNotDepositAccountPage._customerId = customer.ID;
+            }
         }
     }
 }
